@@ -1,5 +1,4 @@
 #include "postgres.h"
-
 #include "fmgr.h"
 #include "utils/builtins.h"
 #include "string.h"
@@ -44,7 +43,13 @@ typedef struct EDNAction
 
 typedef struct EDNValue
 {
-  enum { EDN_STRING_TYPE, EDN_INTEGER_TYPE, EDN_MAP_TYPE, EDN_HALT_PARSER_TYPE } type;
+  enum
+  {
+    EDN_STRING_TYPE,
+    EDN_INTEGER_TYPE,
+    EDN_MAP_TYPE,
+    EDN_HALT_PARSER_TYPE
+  } type;
 
   int size;
   bool hashed;
@@ -91,13 +96,13 @@ typedef struct EDNLexicalContext
 bool advance_parser(EDNLexicalContext *lexical_context, int vararg_count, ...);
 bool is_whitespace(char token);
 void parse_token(EDNLexicalContext *lexical_context);
-EDNValue * parse_edn(EDNLexicalContext *lexical_context);
-EDNValue * parse_map(EDNLexicalContext *lexical_context);
-EDNValue * parse_string(EDNLexicalContext *lexical_context);
+EDNValue *parse_edn(EDNLexicalContext *lexical_context);
+EDNValue *parse_map(EDNLexicalContext *lexical_context);
+EDNValue *parse_string(EDNLexicalContext *lexical_context);
 uint32_t hash_edn_value(EDNValue *value, bool refresh_cached_hash_values);
 bool has_unique_values(EDNValue *values, int len);
-bool compare_vals (EDNValue a, EDNValue b);
-EDNValue * get_map_keys (EDNValue * map);
+bool compare_vals(EDNValue a, EDNValue b);
+EDNValue *get_map_keys(EDNValue *map);
 
 PG_FUNCTION_INFO_V1(edn_in);
 Datum edn_in(PG_FUNCTION_ARGS)
@@ -114,13 +119,13 @@ Datum edn_in(PG_FUNCTION_ARGS)
 
   EDNValue *result = parse_edn(lex);
 
-  PG_RETURN_TEXT_P(cstring_to_text("hello world"));
+  PG_RETURN_TEXT_P(cstring_to_text(""));
 }
 
 PG_FUNCTION_INFO_V1(edn_out);
 Datum edn_out(PG_FUNCTION_ARGS)
 {
-  PG_RETURN_CSTRING("Hello World");
+  PG_RETURN_CSTRING("");
 }
 
 PG_FUNCTION_INFO_V1(deconstruct_array_input);
@@ -137,7 +142,7 @@ Datum deconstruct_array_input(PG_FUNCTION_ARGS)
 
   char *path_components = palloc0(sizeof(char) * path_count);
 
-  for(int i = 0; i < path_count; i++)
+  for (int i = 0; i < path_count; i++)
   {
     char *path_component = TextDatumGetCString(path_datums[i]);
 
@@ -151,7 +156,7 @@ Datum deconstruct_array_input(PG_FUNCTION_ARGS)
     EDNValue *result = parse_edn(lex);
   }
 
-  PG_RETURN_CSTRING("Hello World");
+  PG_RETURN_CSTRING("");
 }
 
 bool advance_parser(EDNLexicalContext *lexical_context, int vararg_count, ...)
@@ -162,10 +167,10 @@ bool advance_parser(EDNLexicalContext *lexical_context, int vararg_count, ...)
 
   va_start(varargs, vararg_count);
 
-  for(int i = 0; i < vararg_count; i ++)
+  for (int i = 0; i < vararg_count; i++)
   {
     EDNTokenType token_type = va_arg(varargs, EDNTokenType);
-    if(lexical_context->current_token_type == token_type)
+    if (lexical_context->current_token_type == token_type)
     {
       va_end(varargs);
       return true;
@@ -179,40 +184,39 @@ bool advance_parser(EDNLexicalContext *lexical_context, int vararg_count, ...)
 
 void parse_token(EDNLexicalContext *lexical_context)
 {
-    char *t = lexical_context->current_token;
-    char *lookahead;
+  char *t = lexical_context->current_token;
+  char *lookahead;
 
-    //Need to add length checks here, we can't be setting t to something that is outside the length of our input!
-    while(is_whitespace(*t))
-    {
-      t ++;
-    }
+  while (is_whitespace(*t))
+  {
+    t++;
+  }
 
-    lookahead = t + 1;
+  lookahead = t + 1;
 
-    switch(*t)
-    {
-      case '{':
-        lexical_context->current_token = t + 1;
-        lexical_context->current_token_type = EDN_MAP_START;
-        break;
-      case '}':
-        lexical_context->current_token = t + 1;
-        lexical_context->current_token_type = EDN_MAP_END;
-        break;
-      case '"':
-        lexical_context->current_token = t;
-        lexical_context->current_token_type = EDN_STRING;
-        break;
-      default:
-        lexical_context->current_token_type = EDN_UNKNOWN;
-        break;
-    }
+  switch (*t)
+  {
+  case '{':
+    lexical_context->current_token = t + 1;
+    lexical_context->current_token_type = EDN_MAP_START;
+    break;
+  case '}':
+    lexical_context->current_token = t + 1;
+    lexical_context->current_token_type = EDN_MAP_END;
+    break;
+  case '"':
+    lexical_context->current_token = t;
+    lexical_context->current_token_type = EDN_STRING;
+    break;
+  default:
+    lexical_context->current_token_type = EDN_UNKNOWN;
+    break;
+  }
 }
 
 bool is_whitespace(char token)
 {
-  if(token == ' ' || token == '\n' || token == '\r' || token == ',')
+  if (token == ' ' || token == '\n' || token == '\r' || token == ',')
   {
     return true;
   }
@@ -220,25 +224,25 @@ bool is_whitespace(char token)
   return false;
 }
 
-EDNValue * parse_edn(EDNLexicalContext *lexical_context)
+EDNValue *parse_edn(EDNLexicalContext *lexical_context)
 {
   EDNValue *value = palloc0(sizeof(EDNValue));
 
-  switch(lexical_context->current_token_type)
+  switch (lexical_context->current_token_type)
   {
-    case EDN_MAP_START:
-      value = parse_map(lexical_context);
-      break;
-    case EDN_STRING:
-      value = parse_string(lexical_context);
-    default:
-      break;
+  case EDN_MAP_START:
+    value = parse_map(lexical_context);
+    break;
+  case EDN_STRING:
+    value = parse_string(lexical_context);
+  default:
+    break;
   }
 
   return value;
 }
 
-EDNValue * parse_map(EDNLexicalContext *lexical_context)
+EDNValue *parse_map(EDNLexicalContext *lexical_context)
 {
   EDNValue *map = palloc0(sizeof(EDNValue));
   map->type = EDN_MAP_TYPE;
@@ -247,11 +251,11 @@ EDNValue * parse_map(EDNLexicalContext *lexical_context)
 
   lexical_context->nest_level += 1;
 
-  while(advance_parser(lexical_context, 2, EDN_STRING, EDN_MAP_START))
+  while (advance_parser(lexical_context, 2, EDN_STRING, EDN_MAP_START))
   {
     EDNMapEntry *entry = palloc0(sizeof(EDNMapEntry));
 
-    if(size == 0)
+    if (size == 0)
     {
       map->data.map.entries = palloc0(sizeof(EDNMapEntry));
     }
@@ -260,9 +264,9 @@ EDNValue * parse_map(EDNLexicalContext *lexical_context)
       map->data.map.entries = repalloc(map->data.map.entries, sizeof(EDNMapEntry) * (size + 1));
     }
 
-    EDNValue * key = parse_edn(lexical_context);
+    EDNValue *key = parse_edn(lexical_context);
 
-    if(key->type == EDN_HALT_PARSER_TYPE)
+    if (key->type == EDN_HALT_PARSER_TYPE)
     {
       return key;
     }
@@ -271,22 +275,22 @@ EDNValue * parse_map(EDNLexicalContext *lexical_context)
 
     lexical_context->current_path[lexical_context->nest_level] = *key;
 
-    if(!advance_parser(lexical_context, 2, EDN_STRING, EDN_MAP_START))
+    if (!advance_parser(lexical_context, 2, EDN_STRING, EDN_MAP_START))
     {
-      switch(lexical_context->current_token_type)
+      switch (lexical_context->current_token_type)
       {
-        case EDN_MAP_END:
-          ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION), errmsg("Map literal must contain an even number of forms")));
-          break;
-        default:
-          ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION), errmsg("Unexpected token when parsing value for map entry")));
-          break;
+      case EDN_MAP_END:
+        ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION), errmsg("Map literal must contain an even number of forms")));
+        break;
+      default:
+        ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION), errmsg("Unexpected token when parsing value for map entry")));
+        break;
       }
     }
 
-    EDNValue * value = parse_edn(lexical_context);
+    EDNValue *value = parse_edn(lexical_context);
 
-    if(key->type == EDN_HALT_PARSER_TYPE)
+    if (key->type == EDN_HALT_PARSER_TYPE)
     {
       return key;
     }
@@ -297,7 +301,7 @@ EDNValue * parse_map(EDNLexicalContext *lexical_context)
 
     size++;
 
-    for(int i = 0; i < lexical_context->nest_level + 1; i ++)
+    for (int i = 0; i < lexical_context->nest_level + 1; i++)
     {
       printf("%s%s", " ", lexical_context->current_path[i].data.string.value);
     }
@@ -306,14 +310,14 @@ EDNValue * parse_map(EDNLexicalContext *lexical_context)
   }
 
   // we've finished parsing map, ensure the last token we saw was a map end
-  if(!(lexical_context->current_token_type == EDN_MAP_END))
+  if (!(lexical_context->current_token_type == EDN_MAP_END))
     ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION), errmsg("Expected map terminator")));
 
   map->size = size;
 
   hash_edn_value(map, false);
 
-  if(!has_unique_values(get_map_keys(map), size))
+  if (!has_unique_values(get_map_keys(map), size))
     ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION), errmsg("Duplicate key in map")));
 
   lexical_context->nest_level -= 1;
@@ -321,11 +325,11 @@ EDNValue * parse_map(EDNLexicalContext *lexical_context)
   return map;
 }
 
-EDNValue * get_map_keys (EDNValue * map)
+EDNValue *get_map_keys(EDNValue *map)
 {
-  EDNValue * keys = palloc0(sizeof(EDNValue) * map->size);
+  EDNValue *keys = palloc0(sizeof(EDNValue) * map->size);
 
-  for(int i = 0; i < map->size; i++)
+  for (int i = 0; i < map->size; i++)
   {
     keys[i] = map->data.map.entries[i].key;
   }
@@ -337,27 +341,27 @@ uint32_t hash_edn_value(EDNValue *value, bool refresh_cached_hash_values)
 {
   uint32_t hash = 0;
 
-  switch(value->type)
+  switch (value->type)
   {
-    case EDN_MAP_TYPE:
-      if(!value->hashed || refresh_cached_hash_values)
+  case EDN_MAP_TYPE:
+    if (!value->hashed || refresh_cached_hash_values)
+    {
+      for (int i = 0; i < value->size; i++)
       {
-        for(int i = 0; i < value->size; i ++)
-        {
-          hash += hash_edn_value(&value->data.map.entries[i].key, refresh_cached_hash_values) ^ hash_edn_value(&value->data.map.entries[i].value, refresh_cached_hash_values);
-        }
+        hash += hash_edn_value(&value->data.map.entries[i].key, refresh_cached_hash_values) ^ hash_edn_value(&value->data.map.entries[i].value, refresh_cached_hash_values);
+      }
 
-        value->data.map.hash = hash;
-        value->hashed = true;
-      }
-      else
-      {
-        hash = value->data.map.hash;
-      }
-      break;
-    default:
-      MurmurHash3_x86_32(value->data.string.value, strlen(value->data.string.value), 0, &hash);
-      break;
+      value->data.map.hash = hash;
+      value->hashed = true;
+    }
+    else
+    {
+      hash = value->data.map.hash;
+    }
+    break;
+  default:
+    MurmurHash3_x86_32(value->data.string.value, strlen(value->data.string.value), 0, &hash);
+    break;
   }
 
   return hash;
@@ -367,18 +371,18 @@ bool has_unique_values(EDNValue *values, int len)
 {
   bool unique_vals = true;
 
-  for(int i = 0; i < len; i ++)
+  for (int i = 0; i < len; i++)
   {
-    for(int j = i + 1; j < len; j ++)
+    for (int j = i + 1; j < len; j++)
     {
-      if(compare_vals(values[i], values[j]))
+      if (compare_vals(values[i], values[j]))
       {
         unique_vals = false;
         break;
       }
     }
 
-    if(!unique_vals)
+    if (!unique_vals)
     {
       break;
     }
@@ -391,35 +395,35 @@ bool compare_vals(EDNValue a, EDNValue b)
 {
   bool vals_equal = true;
 
-  if((a.type != b.type) || (a.size != b.size))
+  if ((a.type != b.type) || (a.size != b.size))
   {
     vals_equal = false;
   }
   else
   {
-    switch(a.type)
+    switch (a.type)
     {
-      case EDN_STRING_TYPE:
-        if(strcmp(a.data.string.value, b.data.string.value) != 0)
-        {
-          vals_equal = false;
-        }
-        break;
-      case EDN_MAP_TYPE:
-        if(a.data.map.hash != b.data.map.hash)
-        {
-          vals_equal = false;
-        }
-        break;
-      default:
-        break;
+    case EDN_STRING_TYPE:
+      if (strcmp(a.data.string.value, b.data.string.value) != 0)
+      {
+        vals_equal = false;
+      }
+      break;
+    case EDN_MAP_TYPE:
+      if (a.data.map.hash != b.data.map.hash)
+      {
+        vals_equal = false;
+      }
+      break;
+    default:
+      break;
     }
   }
 
   return vals_equal;
 }
 
-EDNValue * parse_string(EDNLexicalContext *lexical_context)
+EDNValue *parse_string(EDNLexicalContext *lexical_context)
 {
   char *t, *string_start;
   int len = 0;
@@ -428,7 +432,7 @@ EDNValue * parse_string(EDNLexicalContext *lexical_context)
 
   t = string_start = lexical_context->current_token;
 
-  for(;;)
+  for (;;)
   {
     t++;
 

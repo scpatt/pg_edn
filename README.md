@@ -1,3 +1,3 @@
 # pg_edn
 
-A WIP postgres extension to support Clojure's EDN format as a valid datatype
+A WIP Postgres extension to support the [EDN](https://github.com/edn-format/edn) data format as a custom datatype
