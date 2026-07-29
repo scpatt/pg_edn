@@ -12,10 +12,7 @@ LANGUAGE C IMMUTABLE STRICT;
 
 CREATE TYPE edn (
   INPUT = edn_in,
-  OUTPUT = edn_out
+  OUTPUT = edn_out,
+  INTERNALLENGTH = VARIABLE,
+  STORAGE = extended
 );
-
-CREATE FUNCTION deconstruct_array_input(text[])
-RETURNS cstring
-AS '$libdir/edn'
-LANGUAGE C IMMUTABLE STRICT;

@@ -1,0 +1,8 @@
+{
+  "C_Cpp.default.includePath": [
+    "${env:HOME}/.local/share/mise/installs/postgres/17.10/include/server",
+    "${env:HOME}/.local/share/mise/installs/postgres/17.10/include"
+  ],
+  "C_Cpp.default.cStandard": "c17",
+  "C_Cpp.default.compilerPath": "/usr/bin/clang"
+}

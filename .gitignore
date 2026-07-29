@@ -1,7 +1,15 @@
 /misc
-/edn/edn.dll
-/edn/edn.o
-/edn/libedn.a
-/ednb/ednb.dll
-/ednb/ednb.o
-/edn/murmur3.o
+
+# build artifacts
+*.o
+*.so
+*.dylib
+*.bc
+*.dll
+*.a
+edn/results/
+edn/regression.*
+
+# PG server headers extracted from the Docker image for IntelliSense only
+# (regenerate with ./scripts/sync-pg-headers.sh)
+/.pg-headers/
