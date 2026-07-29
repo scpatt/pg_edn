@@ -1,0 +1,15 @@
+{
+  "configurations": [
+    {
+      "name": "pg_edn",
+      "includePath": [
+        "${env:HOME}/.local/share/mise/installs/postgres/17.10/include/server",
+        "${env:HOME}/.local/share/mise/installs/postgres/17.10/include"
+      ],
+      "defines": [],
+      "compilerPath": "/usr/bin/clang",
+      "cStandard": "c17"
+    }
+  ],
+  "version": 4
+}
